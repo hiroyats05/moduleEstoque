@@ -1,0 +1,1 @@
+Feito em repositório diferente por ser um script privado.

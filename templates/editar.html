@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Item - Sistema de Estoque</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="container mt-3">
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<div class="container mt-4">
+    <h1 class="mb-4">Editar Item</h1>
+    <form method="POST" novalidate>
+        <div class="mb-3">
+            <label for="nome" class="form-label">Nome:</label>
+            <input type="text" name="nome" id="nome" class="form-control" value="{{ produto.nome }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="quantidade" class="form-label">Quantidade:</label>
+            <input type="number" name="quantidade" id="quantidade" class="form-control" value="{{ produto.quantidade }}" min="0" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="tipo" class="form-label">Tipo:</label>
+            <select name="tipo" id="tipo" class="form-select" required onchange="toggleOrigem()">
+                <option value="" disabled hidden {% if not produto.tipo %}selected{% endif %}>Escolha uma opção</option>
+                <option value="Material" {% if produto.tipo == 'Material' %}selected{% endif %}>Material</option>
+                <option value="Equipamento" {% if produto.tipo == 'Equipamento' %}selected{% endif %}>Equipamento</option>
+                <option value="API" {% if produto.tipo == 'API' %}selected{% endif %}>API</option>
+            </select>
+        </div>
+        
+        <div class="mb-3">
+            <label for="unidade_medida" class="form-label">Unidade de Medida:</label>
+            <select name="unidade_medida" id="unidade_medida" class="form-select">
+                <option value="kg" {% if produto.unidade_medida == 'kg' %}selected{% endif %}>kg</option>
+                <option value="m²" {% if produto.unidade_medida == 'm²' %}selected{% endif %}>m²</option>
+                <option value="unidade" {% if produto.unidade_medida == 'unidade' %}selected{% endif %}>unidade</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="local_produto" class="form-label">Local do Produto:</label>
+            <select name="local_produto" id="local_produto" class="form-select">
+                <option value="Estoque Geral" {% if produto.local_produto == 'Estoque Geral' or not produto.local_produto %}selected{% endif %}>Estoque Geral</option>
+                <option value="Depósito A" {% if produto.local_produto == 'Depósito A' %}selected{% endif %}>Depósito A</option>
+                <option value="Depósito B" {% if produto.local_produto == 'Depósito B' %}selected{% endif %}>Depósito B</option>
+                <option value="Obra 1" {% if produto.local_produto == 'Obra 1' %}selected{% endif %}>Obra 1</option>
+                <option value="Obra 2" {% if produto.local_produto == 'Obra 2' %}selected{% endif %}>Obra 2</option>
+                <option value="Almoxarifado Central" {% if produto.local_produto == 'Almoxarifado Central' %}selected{% endif %}>Almoxarifado Central</option>
+                <option value="Setor de Equipamentos" {% if produto.local_produto == 'Setor de Equipamentos' %}selected{% endif %}>Setor de Equipamentos</option>
+                <option value="Outro" {% if produto.local_produto == 'Outro' %}selected{% endif %}>Outro</option>
+            </select>
+        </div>
+
+        <div class="mb-3" id="origem-container" style="{% if produto.tipo != 'Equipamento' %}display: none;{% endif %}">
+            <label for="origem" class="form-label">Origem:</label>
+            <select name="origem" id="origem" class="form-select" aria-describedby="origemHelp">
+                <option value="" disabled {% if not produto.origem %}selected{% endif %}>Selecione a origem</option>
+                <option value="comprado" {% if produto.origem == 'comprado' %}selected{% endif %}>Comprado</option>
+                <option value="alugado" {% if produto.origem == 'alugado' %}selected{% endif %}>Alugado</option>
+            </select>
+            <div id="origemHelp" class="form-text">Escolha a origem apenas para equipamentos.</div>
+        </div>
+
+        <div class="form-check mb-3" id="checkbox-danificado-container" style="{% if produto.tipo != 'Equipamento' %}display: none;{% endif %}">
+            <input class="form-check-input" type="checkbox" value="1" id="checkDanificado" name="tem_danificado"
+                {% if produto.quantidade_danificada and produto.quantidade_danificada > 0 %}checked{% endif %}>
+            <label class="form-check-label" for="checkDanificado">Possui equipamentos danificados</label>
+        </div>
+
+        <div class="mb-3" id="quantidade-danificada-container" style="{% if not produto.quantidade_danificada or produto.tipo != 'Equipamento' %}display: none;{% endif %}">
+            <label for="quantidade_danificada" class="form-label">Quantidade Danificada:</label>
+            <input type="number" name="quantidade_danificada" id="quantidade_danificada" class="form-control"
+                value="{{ produto.quantidade_danificada or 0 }}" min="0" aria-describedby="danificadaHelp">
+            <div id="danificadaHelp" class="form-text">Informe a quantidade danificada do equipamento.</div>
+        </div>
+
+        <div class="d-flex justify-content-start gap-2">
+            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    function toggleOrigem() {
+        const tipo = document.getElementById("tipo").value;
+        const origemContainer = document.getElementById("origem-container");
+        const checkDanificado = document.getElementById("checkbox-danificado-container");
+        const quantidadeDanificada = document.getElementById("quantidade-danificada-container");
+
+        if (tipo === "Equipamento") {
+            origemContainer.style.display = "block";
+            checkDanificado.style.display = "block";
+            // Exibe quantidade danificada se checkbox estiver marcado
+            if (document.getElementById("checkDanificado").checked) {
+                quantidadeDanificada.style.display = "block";
+            } else {
+                quantidadeDanificada.style.display = "none";
+            }
+        } else {
+            origemContainer.style.display = "none";
+            checkDanificado.style.display = "none";
+            quantidadeDanificada.style.display = "none";
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        toggleOrigem();
+
+        const checkbox = document.getElementById("checkDanificado");
+        const container = document.getElementById("quantidade-danificada-container");
+
+        checkbox.addEventListener("change", function () {
+            container.style.display = this.checked ? "block" : "none";
+        });
+
+        // Mostrar o campo quantidade danificada se checkbox estiver marcado no carregamento
+        if (checkbox.checked) {
+            container.style.display = "block";
+        }
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
