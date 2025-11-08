@@ -1,1 +1,1 @@
-Feito em repositório diferente por ser um script privado.
+Refatoração modulo de estoque ERP label
